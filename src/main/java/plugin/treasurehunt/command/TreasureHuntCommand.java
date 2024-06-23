@@ -7,8 +7,6 @@ import java.util.SplittableRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -18,6 +16,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import plugin.treasurehunt.Main;
+
+/** 制限時間ないにランダムで出現する生物を倒して、スコアを獲得するゲームを起動するコマンドです。
+ * スコアは生物によって変わり、倒せた生物の合計によってスコアが変動します。
+ * 結果はプレイヤー名、日時、合計点数を表示します。
+ */
 
 public class TreasureHuntCommand extends BaseCommand implements Listener {
   private Main main;
@@ -33,27 +36,9 @@ public class TreasureHuntCommand extends BaseCommand implements Listener {
   public boolean onExecutePlayerCommand(Player player) {
     this.player = player;
     gameTime = 70;
-    World world = player.getWorld();
     score = 0;
 
-    player.sendTitle("宝探しゲームスタート！",
-        "豚・ラマを倒して点数ゲット！",
-        0,60,0);
-
-    Bukkit.getScheduler().runTaskTimer(main, Runnable -> {
-      if(gameTime <= 0) {
-        Runnable.cancel();
-        player.sendTitle("ゲームが終了しました。",
-            player.getName() + "合計" + score + "点！",
-            0,60,0);
-
-        spawnEntityList.forEach(Entity::remove);
-        return;
-      }
-      Entity spawnEntity = player.getWorld().spawnEntity(getEntitySpawnLocation(player, world), getEntity());
-      spawnEntityList.add(spawnEntity);
-      gameTime -= 20;
-    }, 0,20 * 20);
+    gamePlay(player);
     return true;
   }
 
@@ -66,13 +51,10 @@ public class TreasureHuntCommand extends BaseCommand implements Listener {
   public void onEntityDeath(EntityDeathEvent e) {
     LivingEntity entity = e.getEntity();
     Player player = e.getEntity().getKiller();
-    if(Objects.isNull(player)){
-      return;
-    }
-    if(Objects.isNull(this.player)) {
-      return;
-    }
 
+    if(Objects.isNull(player) || spawnEntityList.stream().noneMatch(Entity -> Entity.equals(entity))){
+      return;
+    }
 
     if(this.player.getName().equals(player.getName())) {
       int point = switch (entity.getType()) {
@@ -81,9 +63,32 @@ public class TreasureHuntCommand extends BaseCommand implements Listener {
         case LLAMA -> 200;
         default -> 0;
       };
+
       score +=point;
       player.sendMessage("生物を倒した！現在のスコアは" + score + "点！");
     }
+  }
+
+  private void gamePlay(Player player) {
+    player.sendTitle("宝探しゲームスタート！",
+        "豚・ラマを倒して点数ゲット！",
+        0,60,0);
+
+    Bukkit.getScheduler().runTaskTimer(main, Runnable -> {
+      if(gameTime <= 0) {
+        Runnable.cancel();
+        player.sendTitle("ゲームが終了しました。",
+            player.getName() + "合計" + score + "点！",
+            0,60,0);
+
+        spawnEntityList.forEach(Entity::remove);
+        spawnEntityList = new ArrayList<>();
+        return;
+      }
+      Entity spawnEntity = player.getWorld().spawnEntity(getEntitySpawnLocation(player), getEntity());
+      spawnEntityList.add(spawnEntity);
+      gameTime -= 20;
+    }, 0,20 * 20);
   }
 
   /**
@@ -92,10 +97,9 @@ public class TreasureHuntCommand extends BaseCommand implements Listener {
    * Y軸はプレイヤーと同じ位置になります。
    *
    * @param player　コマンドを実行したプレイヤー
-   * @param world　　コマンドを実行したプレイヤーが所属するワールド
-   * @return　敵の出現場所
+   * @return　生物の出現場所
    */
-  private Location getEntitySpawnLocation(Player player, World world) {
+  private Location getEntitySpawnLocation(Player player) {
     Location playerLocation = player.getLocation();
     int randomX = new SplittableRandom().nextInt(30) - 20;
     int randomZ = new SplittableRandom().nextInt(30) - 20;
@@ -104,7 +108,7 @@ public class TreasureHuntCommand extends BaseCommand implements Listener {
     double y = playerLocation.getY();
     double z = playerLocation.getZ() + randomZ;
 
-    return new Location(world, x, y, z);
+    return new Location(player.getWorld(), x, y, z);
   }
 
   /**
