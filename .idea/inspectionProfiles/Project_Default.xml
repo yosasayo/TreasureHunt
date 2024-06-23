@@ -4,5 +4,8 @@
     <inspection_tool class="EnumSwitchStatementWhichMissesCases" enabled="false" level="INFORMATION" enabled_by_default="false">
       <option name="ignoreSwitchStatementsWithDefault" value="true" />
     </inspection_tool>
+    <inspection_tool class="JavadocDeclaration" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ADDITIONAL_TAGS" value="return　処理の実行有無,return　敵の出現場所,return　生物,return　生物の出現場所,return*　生物" />
+    </inspection_tool>
   </profile>
 </component>

@@ -19,47 +19,46 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import plugin.treasurehunt.Main;
 
-public class TreasureHuntCommand implements CommandExecutor, Listener {
-private Main main;
-
-private  Player player;
-
-private List<Entity> spawnEntityList = new ArrayList<>();
-  private int gameTime = 300;
-private  int score;
-  World world;
-
+public class TreasureHuntCommand extends BaseCommand implements Listener {
+  private Main main;
+  private  Player player;
+  private List<Entity> spawnEntityList = new ArrayList<>();
+  private int gameTime = 70;
+  private  int score;
   public TreasureHuntCommand(Main main) {
     this.main = main;
   }
 
   @Override
-  public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-    if (sender instanceof Player player) {
-      this.player = player;
-      gameTime = 300;
-      World world = player.getWorld();
-      score = 0;
+  public boolean onExecutePlayerCommand(Player player) {
+    this.player = player;
+    gameTime = 70;
+    World world = player.getWorld();
+    score = 0;
 
-      player.sendTitle("宝探しゲームスタート！",
-          "豚・ラマを倒して点数ゲット！",
-          0,60,0);
+    player.sendTitle("宝探しゲームスタート！",
+        "豚・ラマを倒して点数ゲット！",
+        0,60,0);
 
-      Bukkit.getScheduler().runTaskTimer(main, Runnable -> {
-        if(gameTime <= 0) {
-          Runnable.cancel();
-          player.sendTitle("ゲームが終了しました。",
-              player.getName() + "合計" + score + "点！",
-              0,60,0);
+    Bukkit.getScheduler().runTaskTimer(main, Runnable -> {
+      if(gameTime <= 0) {
+        Runnable.cancel();
+        player.sendTitle("ゲームが終了しました。",
+            player.getName() + "合計" + score + "点！",
+            0,60,0);
 
-          spawnEntityList.forEach(Entity::remove);
-          return;
-        }
-        Entity spawnEntity = player.getWorld().spawnEntity(getEntitySpawnLocation(player, world), getEntity());
-        spawnEntityList.add(spawnEntity);
-        gameTime -= 20;
-      }, 0,20 * 20);
-    }
+        spawnEntityList.forEach(Entity::remove);
+        return;
+      }
+      Entity spawnEntity = player.getWorld().spawnEntity(getEntitySpawnLocation(player, world), getEntity());
+      spawnEntityList.add(spawnEntity);
+      gameTime -= 20;
+    }, 0,20 * 20);
+    return true;
+  }
+
+  @Override
+  public boolean onExecuteNPCCommand(CommandSender sender) {
     return false;
   }
 
@@ -78,19 +77,10 @@ private  int score;
     if(this.player.getName().equals(player.getName())) {
       int point = switch (entity.getType()) {
         case SHEEP -> -10;
-        case PIG -> {
-          if (gameTime <= 20) {
-            yield 100;
-          } else if (gameTime <= 300) {
-            yield 50;
-          } else {
-            yield 0;
-          }
-          }
+        case PIG -> (gameTime <= 60) ? 100 : (gameTime <= 70) ? 50 : 0;
         case LLAMA -> 200;
         default -> 0;
       };
-
       score +=point;
       player.sendMessage("生物を倒した！現在のスコアは" + score + "点！");
     }
